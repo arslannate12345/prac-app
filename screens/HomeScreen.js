@@ -119,6 +119,8 @@ const HomeScreen = ({ navigation }) => {
         <Text>Error: {error}</Text>
       </View>
     );
+  } else {
+    console.log("ali is my best friend.");
   }
 
   return (
