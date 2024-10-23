@@ -3,8 +3,6 @@ import React, { useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HomeScreen from "./screens/HomeScreen";
-import DetailScreen from "./screens/DetailsScreen";
-import CartScreen from "./screens/CartScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -22,10 +20,6 @@ const App = () => {
               favorites={favorites}
             />
           )}
-        </Stack.Screen>
-        <Stack.Screen name="Detail" component={DetailScreen} />
-        <Stack.Screen name="Cart">
-          {(props) => <CartScreen {...props} favorites={favorites} />}
         </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
