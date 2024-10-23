@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -16,27 +16,77 @@ const HomeScreen = () => {
     error,
   } = useFetch("https://api.alquran.cloud/v1/surah", "surahData");
 
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedSurahNumber, setSelectedSurahNumber] = useState(null);
+  const [ayahs, setAyahs] = useState([]);
+
+  // Function to fetch Ayahs for a selected Surah
+  const fetchAyahs = async (surahNumber) => {
+    try {
+      const response = await fetch(
+        `https://api.alquran.cloud/v1/surah/${surahNumber}`
+      );
+      const data = await response.json();
+      if (data && data.data) {
+        // Display the first 6 Ayahs
+        setAyahs(data.data.ayahs.slice(0, 6));
+      }
+    } catch (error) {
+      console.error("Error fetching Ayahs:", error);
+    }
+  };
+
+  // Handle Surah selection
+  const handleSurahPress = (item) => {
+    if (selectedSurahNumber === item.number) {
+      // If already selected, deselect
+      setSelectedSurahNumber(null);
+      setAyahs([]);
+    } else {
+      // Select and fetch Ayahs
+      setSelectedSurahNumber(item.number);
+      fetchAyahs(item.number);
+    }
+  };
 
   const renderSurah = ({ item }) => {
     return (
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() => {
-          setSelectedItem(item); // Update the selected item when pressed
-        }}
-      >
-        <View style={styles.textContainer}>
-          <Text style={styles.surahNumber}>{item.number}</Text>
-          <View style={styles.surahInfo}>
-            <Text style={styles.name}>{item.englishName || "N/A"}</Text>
-            <Text style={styles.details}>
-              {item.revelationType} - {item.numberOfAyahs} Ayahs
-            </Text>
+      <View>
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => handleSurahPress(item)} // Update the selected item and fetch Ayahs
+        >
+          <View style={styles.textContainer}>
+            <Text style={styles.surahNumber}>{item.number}</Text>
+            <View style={styles.surahInfo}>
+              <Text style={styles.name}>{item.englishName || "N/A"}</Text>
+              <Text style={styles.details}>
+                {item.revelationType} - {item.numberOfAyahs} Ayahs
+              </Text>
+            </View>
+            <Text style={styles.arabicName}>{item.name || "N/A"}</Text>
           </View>
-          <Text style={styles.arabicName}>{item.name || "N/A"}</Text>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+        {selectedSurahNumber === item.number && (
+          <View style={styles.ayahListContainer}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => handleSurahPress(item)} // Close the Ayah list
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+            <FlatList
+              data={ayahs}
+              renderItem={({ item }) => (
+                <View style={styles.ayahContainer}>
+                  <Text style={styles.ayahText}>{item.text}</Text>
+                </View>
+              )}
+              keyExtractor={(ayah) => ayah.number.toString()}
+              contentContainerStyle={styles.ayahFlatListContainer}
+            />
+          </View>
+        )}
+      </View>
     );
   };
 
@@ -64,12 +114,9 @@ const HomeScreen = () => {
         <View style={styles.lastReadContainer}>
           <Text style={styles.lastReadTitle}>Current Selection</Text>
           <Text style={styles.lastReadSurah}>
-            {selectedItem ? selectedItem.englishName : "No Surah Selected"}
-          </Text>
-          <Text style={styles.lastReadAyah}>
-            {selectedItem
-              ? `Ayahs: ${selectedItem.numberOfAyahs}`
-              : "Select a Surah to display"}
+            {selectedSurahNumber
+              ? `Surah ${selectedSurahNumber}`
+              : "No Surah Selected"}
           </Text>
           <Image
             source={{ uri: "https://example.com/book-icon.png" }} // Replace with your book icon URL or local asset
@@ -115,7 +162,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     alignItems: "center",
-    position: "relative",
   },
   lastReadTitle: {
     color: "#f0e8ff",
@@ -127,44 +173,33 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
   },
-  lastReadAyah: {
-    color: "#f0e8ff",
-    fontSize: 14,
-    marginTop: 2,
-  },
   bookIcon: {
     width: 40,
     height: 40,
-    position: "absolute",
-    top: -20,
-    right: -20,
   },
   flatListContainer: {
     paddingBottom: 16,
   },
   card: {
-    flexDirection: "row",
     backgroundColor: "#fff",
     marginBottom: 12,
     borderRadius: 8,
     padding: 16,
-    alignItems: "center",
     elevation: 2,
   },
   textContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    width: "100%",
     alignItems: "center",
   },
   surahNumber: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#6a4bbc",
-    marginRight: 12,
   },
   surahInfo: {
     flex: 1,
+    marginLeft: 16,
   },
   name: {
     fontSize: 16,
@@ -174,12 +209,31 @@ const styles = StyleSheet.create({
   details: {
     fontSize: 12,
     color: "#666",
-    marginTop: 4,
   },
   arabicName: {
     fontSize: 18,
     color: "#6a4bbc",
     fontWeight: "bold",
+  },
+  ayahListContainer: {
+    backgroundColor: "#f3f1f9",
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 8,
+  },
+  closeButton: {
+    alignSelf: "flex-end",
+  },
+  closeButtonText: {
+    color: "#6a4bbc",
+    fontSize: 16,
+  },
+  ayahContainer: {
+    marginBottom: 8,
+  },
+  ayahText: {
+    fontSize: 14,
+    color: "#333",
   },
 });
 
