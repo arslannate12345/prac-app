@@ -5,104 +5,37 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
-  Image,
-  Button,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import useFetch from "../hooks/useFetch";
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = () => {
   const {
-    data: products,
+    data: responseData,
     loading,
     error,
-  } = useFetch(
-    "https://simple-grocery-store-api.online/products",
-    "productsData"
-  );
+  } = useFetch("https://api.alquran.cloud/v1/surah", "surahData");
 
-  const [favorites, setFavorites] = useState([]);
-  const [likedItems, setLikedItems] = useState({});
-  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedItem, setSelectedItem] = useState(null);
 
-  useEffect(() => {
-    const loadFavorites = async () => {
-      try {
-        const storedFavorites = await AsyncStorage.getItem("favorites");
-        if (storedFavorites) {
-          setFavorites(JSON.parse(storedFavorites));
-        }
-      } catch (error) {
-        console.error("Failed to load favorites from storage:", error);
-      }
-    };
-
-    loadFavorites();
-  }, []);
-
-  const toggleLike = (item) => {
-    setLikedItems((prevLikedItems) => {
-      const isLiked = prevLikedItems[item.id] || false;
-      const newLikedItems = { ...prevLikedItems, [item.id]: !isLiked };
-
-      if (!isLiked) {
-        setFavorites((prevFavorites) => {
-          const updatedFavorites = [...prevFavorites, item];
-          saveFavoritesToStorage(updatedFavorites);
-          return updatedFavorites;
-        });
-      } else {
-        setFavorites((prevFavorites) => {
-          const updatedFavorites = prevFavorites.filter(
-            (fav) => fav.id !== item.id
-          );
-          saveFavoritesToStorage(updatedFavorites);
-          return updatedFavorites;
-        });
-      }
-      return newLikedItems;
-    });
-  };
-
-  const saveFavoritesToStorage = async (updatedFavorites) => {
-    try {
-      await AsyncStorage.setItem("favorites", JSON.stringify(updatedFavorites));
-    } catch (error) {
-      console.error("Failed to save favorites:", error);
-    }
-  };
-
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const renderProduct = ({ item }) => {
-    const isLiked = likedItems[item.id] || false;
+  const renderSurah = ({ item }) => {
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() => navigation.navigate("Detail", item)}
+        onPress={() => {
+          setSelectedItem(item);
+        }}
       >
-        <Image
-          source={{ uri: item.image || "https://via.placeholder.com/150" }}
-          style={styles.productImage}
-        />
         <View style={styles.textContainer}>
-          <Text style={styles.name}>{item.name || "N/A"}</Text>
-          <Text style={styles.price}>${item.price || "N/A"} per piece</Text>
-          <TouchableOpacity onPress={() => toggleLike(item)}>
-            <Text style={[styles.likeButton, isLiked && styles.liked]}>
-              {isLiked ? "❤️" : "🤍"}
-            </Text>
-          </TouchableOpacity>
+          <Text style={styles.name}>{item.englishName || "N/A"}</Text>
+          <Text style={styles.translation}>
+            {item.englishNameTranslation || "N/A"}
+          </Text>
+          <Text style={styles.details}>
+            {item.revelationType} - {item.numberOfAyahs} Ayahs
+          </Text>
         </View>
       </TouchableOpacity>
     );
-  };
-
-  const navigateToCart = () => {
-    navigation.navigate("Cart");
   };
 
   if (loading) {
@@ -123,18 +56,22 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.searchBar}
-        placeholder="Search for products"
-        value={searchQuery}
-        onChangeText={(text) => setSearchQuery(text)}
-      />
-      <Button title="Go to Cart" onPress={navigateToCart} />
+      <View style={styles.widgetContainer}>
+        {selectedItem ? (
+          <View style={styles.selectedItemWidget}>
+            <Text style={styles.widgetTitle}>Current Selection</Text>
+            <Text style={styles.selectedItemName}>
+              {selectedItem.englishName || "N/A"}
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.widgetTitle}>No item selected</Text>
+        )}
+      </View>
       <FlatList
-        data={filteredProducts.slice(0, 50)}
-        renderItem={renderProduct}
-        keyExtractor={(item) => item.id.toString()}
-        numColumns={2}
+        data={responseData?.data || []}
+        renderItem={renderSurah}
+        keyExtractor={(item) => item.number.toString()}
         contentContainerStyle={styles.flatListContainer}
       />
     </View>
@@ -147,33 +84,36 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "#f2f2f2",
   },
-  searchBar: {
-    height: 40,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 8,
-    marginBottom: 10,
-    paddingHorizontal: 8,
-    backgroundColor: "#fff",
-  },
   flatListContainer: {
     paddingBottom: 16,
   },
+  widgetContainer: {
+    backgroundColor: "#e0e0e0",
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  selectedItemWidget: {
+    alignItems: "center",
+  },
+  widgetTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  selectedItemName: {
+    fontSize: 16,
+    color: "#555",
+    marginTop: 8,
+  },
   card: {
-    flex: 1,
+    width: "100%",
     backgroundColor: "#fff",
-    margin: 8,
+    marginBottom: 16,
     borderRadius: 8,
     padding: 16,
     alignItems: "center",
     justifyContent: "center",
     elevation: 3,
-  },
-  productImage: {
-    width: 100,
-    height: 100,
-    resizeMode: "contain",
-    marginBottom: 8,
   },
   textContainer: {
     alignItems: "center",
@@ -183,17 +123,15 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 4,
   },
-  price: {
+  translation: {
     fontSize: 14,
     color: "#888",
     marginBottom: 4,
   },
-  likeButton: {
-    fontSize: 18,
-    marginTop: 4,
-  },
-  liked: {
-    color: "red",
+  details: {
+    fontSize: 12,
+    color: "#888",
+    marginBottom: 4,
   },
 });
 
